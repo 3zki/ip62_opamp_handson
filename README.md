@@ -1,7 +1,14 @@
 # ip62_opamp_handson
 ISHI会 OPAMPハンズオン (2026/08/15-16)
 
-提示された資料を全部無視して設計しました
+提示された資料を全部無視して設計した後、比較しました。
+
+概ね同じ内容となっていますが、一部異なるポイントがあったのでメモ。
+
+## 異なるポイント
+* NMOS入力ではなくPMOS入力
+* M5の入力下限はVov1ではなくsqrt(I5/β1)を使った
+* M7のW/Lを求める式が違う
 
 # ターゲットとなる設計指標の決定
 決めるのは以下の指標
@@ -98,10 +105,9 @@ $$C_C > \frac{2.2}{10} \cdot C_L$$
 
 が必要なので
 
-$$C_C > 8.8pF$$
+$$C_C > 8.8pF \longrightarrow 10pF$$
 
-ここでは $C_C = 10pF$ としました。
-
+テール電流I5はSR, Ccに関する式
 
 $$I_5 = SR\cdot C_C$$ 
 
@@ -140,15 +146,21 @@ $$\frac{GBW}{|p2|} = tan(24.29^\circ )$$
 
 $$ |p2| = \frac{GBW}{tan(24.29^\circ)} \simeq 2.2GB$$
 
+例えば、位相余裕PM=45degなら $|p2|\simeq 1.22GB$ になります。
+
 余談おわり
 
 ## 2. 初段OTA: 入力段 M1, M2のサイズ決定
 
-入力トランジスタ M1, M2は
+入力トランジスタ M1, M2は ユニティゲイン周波数(=GBW)に関する式
+
+$$\omega_{unity} = 2\pi \cdot GBW \simeq \frac{gm_1}{C_C}$$
+
+より、
 
 $$gm_{1} = 2\pi \cdot GBW \cdot C_C$$
 
-より、
+代入すると、
 
 $$gm_{1} = 2\pi \cdot 1.0\times 10^6 \cdot 10\times 10^{-12} = 62.83\mu S$$
 
@@ -157,11 +169,16 @@ $$gm_{1} = 2\pi \cdot 1.0\times 10^6 \cdot 10\times 10^{-12} = 62.83\mu S$$
 $$\left( \frac{W}{L} \right) _{1,2} = \frac{{gm_1}^2}{\mu _pC_{ox}\cdot I_5} = 12.17 \longrightarrow 16$$
 
 ## 3. 初段OTA: カレントミラー M3,M4のサイズ決定
-M3, M4は入力電圧範囲により決定される ($V_{th_1,2}$は正の値 (+0.7V) として式の符号を決定していることに注意)
 
-$$\left( \frac{W}{L} \right) _{3,4} = \frac{I_5}{\mu _nC_{ox}\cdot (V_{in,min} - V_{SS} - V_{th1,2} + V_{th3,4})^2}$$
+M3, M4は飽和領域で動作するのに必要なドレインソース間電圧 Vds3,4(sat) に律速される。
 
-より、
+$$\left( \frac{W}{L} \right) _{3,4} = \frac{2I_5}{\mu _nC_{ox}\cdot {V_{ds3,4(sat)}}^2}$$
+
+Vds3(sat)入力電圧範囲により決定される ($V_{th1,2}$は正の値 (+0.7V) として式の符号を決定していることに注意)
+
+$$V_{ds3,4(sat)}= V_{in,min} - V_{SS} - V_{th1,2} + V_{th3,4}$$
+
+代入すると、
 
 $$\left( \frac{W}{L} \right) _{3,4} = \frac{20\times 10^{-6}}{61.931\times 10^{-6}\cdot (0.1 - 0 - 0.73047 + 0.794425)^2} = 12.013 \longrightarrow 16$$
 
@@ -216,12 +233,43 @@ $$\left( \frac{W}{L} \right) _{7} = \left( \frac{W}{L} \right) _{3,4} \cdot \fra
 
 $$z = \frac{gm_7}{C_c} = 10\frac{gm_1}{C_C} = 10GBW$$
 
+またはPM=60degかつz=10GBWを満たす条件
+
+$$|p2| = \frac{gm_7}{C_L} = 2.2\cdot\frac{gm_1}{C_C} = 2.2GB$$
+
+$$gm_7 = 2.2gm_1\frac{C_L}{C_C}$$
+
+この２つの式で得られる$gm_7$のうち、値の大きい方を採用する。そして通常は前者のほうが大きい値を取る。
+
 よって、
 
 $$ gm_7 = 10gm_1 = 628.32\mu S$$
 
-がz=10GBWの目安。 よって
+がz=10GBWの目安。 よってM3,M4とのバランス
+
+$$\left( \frac{W}{L} \right) _{7} =\left( \frac{W}{L} \right) _{3,4} \frac{gm_7}{gm_{3,4}}$$
+
+代入して、
 
 $$\left( \frac{W}{L} \right) _{7} =16 \cdot \frac{628.32\mu S}{140.78 \mu S} = 71.41 \longrightarrow 80 $$
 
+## 6. ソース接地増幅段: アクティブ抵抗M6の決定
 
+I7が
+
+$$I_7 =\frac{{gm_7}^2}{2\left( \frac{W}{L} \right) _{7}\mu _nC_{ox}}$$
+
+代入すると
+
+$$I_7 =\frac{{(628.32\times 10^{-6})}^2}{2\cdot 80 \cdot 61.931\times10^{-6}} = 44.63 uA \longrightarrow 50 uA$$
+
+システマティックオフセットから、
+
+$$\left( \frac{W}{L} \right) _{6} = \left( \frac{W}{L} \right) _{5}\frac{I_7}{I_5} = 16\cdot \frac{50 uA}{20 uA} = 40$$
+
+# 設計値まとめ
+
+
+| M1=M2 | M3=M4 | M5 | M6 | M7 |
+| ---- | ---- | ---- | ---- | ---- |
+| 16 | 16 | 16 | 40 | 80 |
