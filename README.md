@@ -102,10 +102,6 @@ $$C_C > 8.8pF$$
 
 ここでは $C_C = 10pF$ としました。
 
-* $2.2\longrightarrow PM \simeq 60deg$の条件
-* $10\longrightarrow g_{m7} = 10g_{m2}$の条件
-
-これはあとで解説します
 
 $$I_5 = SR\cdot C_C$$ 
 
@@ -113,4 +109,119 @@ $$I_5 = SR\cdot C_C$$
 
 $$I_5 = 2\times 10^{6}(V/s) \cdot 10\times 10^{-12}(F) = 20 \mu A$$
 
-## 2. 
+以下、余談
+
+0.22 という値は 2.2 という値と 10 という値からきています。意味はそれぞれ、
+
+* $2.2\longrightarrow$ : $z \simeq 10GB$かつ $PM \simeq 60deg$ の条件
+* $10\longrightarrow$ : RHP零点をGB積(=ユニティゲイン周波数)の10倍のところに置くと仮定したため ($z \simeq 10GB$)
+
+この2.2という値について
+
+位相余裕とは次の極と零点により定義できます
+
+$$PM = 180^\circ - tan^{-1}\left( \frac{GBW}{|p1|} \right) - tan^{-1}\left( \frac{GBW}{|p2|} \right) - tan^{-1}\left( \frac{GBW}{|z|} \right)$$
+
+ここでp1は低周波極でありユニティゲイン周波数から遠い場所にあるとすると $tan^{-1}\left( \frac{GB}{|p1|} \right) = 90^\circ$とみなせるため、
+
+$$PM = 90^\circ - tan^{-1}\left( \frac{GBW}{|p2|} \right) - tan^{-1}\left( \frac{GBW}{|z|} \right)$$
+
+RHP zeroとなる零点は GB積(=ユニティゲイン周波数)の10倍のところに置くと仮定します。 ($z \simeq 10GB$)
+
+すると零点の位相は
+
+$$tan^{-1}\left( \frac{GBW}{|z|} \right) = tan^{-1}(0.1) \simeq 5.71^\circ$$
+
+また、位相余裕を60度と設定したので、 $PM=60^\circ$です。以上から
+
+$$tan^{-1}\left( \frac{GBW}{|p2|} \right) = 90^\circ -60^\circ -5.71^\circ = 24.29^\circ$$
+
+$$\frac{GBW}{|p2|} = tan(24.29^\circ )$$
+
+$$ |p2| = \frac{GBW}{tan(24.29^\circ)} \simeq 2.2GB$$
+
+余談おわり
+
+## 2. 初段OTA: 入力段 M1, M2のサイズ決定
+
+入力トランジスタ M1, M2は
+
+$$gm_{1} = 2\pi \cdot GBW \cdot C_C$$
+
+より、
+
+$$gm_{1} = 2\pi \cdot 1.0\times 10^6 \cdot 10\times 10^{-12} = 62.83\mu S$$
+
+よって、
+
+$$\left( \frac{W}{L} \right) _{1,2} = \frac{{gm_1}^2}{\mu _pC_{ox}\cdot I_5} = 12.17 \longrightarrow 16$$
+
+## 3. 初段OTA: カレントミラー M3,M4のサイズ決定
+M3, M4は入力電圧範囲により決定される ($V_{th_1,2}$は正の値 (+0.7V) として式の符号を決定していることに注意)
+
+$$\left( \frac{W}{L} \right) _{3,4} = \frac{I_5}{\mu _nC_{ox}\cdot (V_{in,min} - V_{SS} - V_{th1,2} + V_{th3,4})^2}$$
+
+より、
+
+$$\left( \frac{W}{L} \right) _{3,4} = \frac{20\times 10^{-6}}{61.931\times 10^{-6}\cdot (0.1 - 0 - 0.73047 + 0.794425)^2} = 12.013 \longrightarrow 16$$
+
+第3極はM3,M4のゲート容量Cgs3,4により発生するため悪さをしないか確認する。GB積に対して
+
+$$\left| p_3\right|= \left| \frac{-gm_3}{2C_{gs3}}\right| > 10GBW$$
+
+を満たすか確認する。CgsはW/L, mを設定してOP解析を実施して取得する。負の容量値が出た場合は符号をとって正の値、絶対値とする。
+
+$$gm_3 = \sqrt{2\mu _nC_{ox}\cdot \left( \frac{W}{L} \right) _{3,4} \cdot I_{3,4} } = \sqrt{2\cdot 61.931\times 10^{-6}\cdot 16\cdot 10\times10^{-6}} = 140.78\mu S$$
+
+$$\left| p_3\right| = \frac{140.78\times 10^{-6}}{2\cdot 3.9\times 10^{-13}} = 1.8\times 10^8 > 10^7 ;  Okay!$$
+
+
+ここでM1~M4のサイズバランスが明らかに悪い(W/Lが1000を超えたり、1を割ったなど)場合や、第3極の条件に違反した場合はスルーレートやGBWの設定を見直す。自分ならスルーレートを違う値にしてみる。
+
+1. ~ 3. の手順は何回か反復してみる。
+
+## 4. 初段OTA: テール電流　M5 のサイズ決定
+M5は飽和領域で動作するのに必要なドレインソース間電圧 Vds5(sat) に律速される。
+
+$$\left( \frac{W}{L} \right) _{5} = \frac{2I_5}{\mu _pC_{ox}\cdot {V_{ds5(sat)}}^2}$$
+
+Vds5satは最大入力電圧により決定. $V_{th5}$は正の値 (+0.7V) として式の符号を決定していることに注意
+
+$$V_{ds5(sat)} = V_{DD}-V_{in(max)}+\sqrt{\frac{I_5}{\left( \frac{W}{L} \right) _{1,2}\mu _nC_{ox}}}-V_{th5}$$
+
+$V_{in(max)}$は適当でもよいがVovを用いた計算で求めた. $V_{th5}$は正の値 (+0.7V) として式の符号を決定していることに注意
+
+$$V_{in(max)} = V_{DD}-V_{th5}-V_{ov5} = 5.0 - 0.73047 - 0.1 = 4.16 V$$
+
+これを代入して
+
+$$V_{ds5(sat)} = 5.0 - 4.16 + \sqrt{\frac{20\times 10^{-6}}{16\cdot 16.213\times 10^{-6}}} - 0.73047 = 0.377 V$$
+
+よって、
+
+$$\left( \frac{W}{L} \right) _{5} = \frac{2\cdot 20\times 10^{-6}}{16.213\times 10^{-6}\cdot {0.377}^2} = 17.29 \longrightarrow 16$$
+
+M5のサイズに関して、Vds5satに余裕を持たせるのであれば計算値以下の値を採用する。
+
+計算値以上の値とするとVin(max)が上昇するが、これはVds5satが下がる (=Vov5が小さくなる!)ので設計が厳しくなります。　
+
+以上とするか以下とするかは自由ということで。
+
+## 5. ソース接地増幅段: 入力段M7の決定
+M7のサイズはgm7をどうするかで決まる。
+
+$$\left( \frac{W}{L} \right) _{7} = \left( \frac{W}{L} \right) _{3,4} \cdot \frac{gm_7}{gm_3} $$
+
+入力段M7に関しては零点をGB積の10倍のところに置くことにしたので、
+
+$$z = \frac{gm_7}{C_c} = 10\frac{gm_1}{C_C} = 10GBW$$
+
+よって、
+
+$$ gm_7 = 10gm_1 = 628.32\mu S$$
+
+がz=10GBWの目安。 よって
+
+$$\left( \frac{W}{L} \right) _{7} =16 \cdot \frac{628.32\mu S}{140.78 \mu S} = 71.41 \longrightarrow 80 $$
+
+
